@@ -121,6 +121,7 @@
     position: relative;
     overflow: hidden;
     margin-bottom: 20px;
+    perspective: 1200px; /* 3Dアニメーション用 */
   }
   .sym-half {
     width: 50%;
@@ -131,6 +132,8 @@
     justify-content: center;
     position: relative;
   }
+  
+  /* 中央線 */
   .sym-axis {
     position: absolute;
     left: 50%;
@@ -142,6 +145,16 @@
     transform: translateX(-2px);
     box-shadow: 0 0 10px rgba(255, 87, 34, 0.5);
   }
+
+  /* 中央線上に配置する「おる/もどす」ボタン */
+  .fold-btn-container {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 30;
+  }
+
   .sym-label {
     position: absolute;
     top: 15px;
@@ -159,20 +172,6 @@
     align-items: center;
     justify-content: center;
     position: relative;
-  }
-  
-  /* 線対称の折り返しアニメーション用コンテナ */
-  .moving-shape {
-    position: absolute;
-    width: 260px;
-    height: 260px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: transform 1.2s cubic-bezier(0.4, 0, 0.2, 1), opacity 1.2s ease;
-    transform-origin: left center; /* 軸を基準に回転 */
-    pointer-events: none;
-    z-index: 10;
   }
 
   /* 共通ボタン */
@@ -263,32 +262,31 @@
         <option value="f">アルファベット「F」</option>
         <option value="draw">お絵描き 🎨</option>
       </select>
-      <button class="btn-orange" style="padding: 10px 20px; font-size:16px;" onclick="foldSymmetry()">パタンと折る ▶</button>
-      <button class="btn-blue" style="padding: 10px 20px; font-size:16px; background-color:#9e9e9e; box-shadow:0 4px 0px #616161;" onclick="resetSymmetry()">リセット</button>
     </div>
 
     <div class="symmetry-workspace">
-      <!-- 軸 -->
+      <!-- 中央の赤い線（軸） -->
       <div class="sym-axis"></div>
+
+      <!-- 中央線上のボタン：「おる」⇔「もどす」 -->
+      <div class="fold-btn-container">
+        <button id="actionBtn" class="btn-orange" onclick="toggleFold()" style="padding: 12px 24px; font-size:18px; border-radius: 30px;">おる</button>
+      </div>
 
       <!-- 左側（元図形） -->
       <div class="sym-half">
         <div class="sym-label">ひだり（もと）</div>
-        <div class="canvas-box" id="symLeftBox">
-          <!-- 動的挿入 -->
-        </div>
+        <div class="canvas-box" id="symLeftBox"></div>
       </div>
 
       <!-- 右側（対称図形） -->
       <div class="sym-half">
         <div class="sym-label">みぎ（線対称）</div>
-        <div class="canvas-box" id="symRightBox">
-          <!-- アニメーション用または結果の図形 -->
-        </div>
+        <div class="canvas-box" id="symRightBox"></div>
       </div>
 
-      <!-- パタンと折るときに飛ぶレイヤー -->
-      <div id="flyingContainer" style="position:absolute; left:0; top:0; width:100%; height:100%; pointer-events:none;"></div>
+      <!-- アニメーション用フリップレイヤー -->
+      <div id="flippingLayer" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; overflow: hidden; z-index: 20;"></div>
     </div>
   </div>
 
@@ -314,41 +312,25 @@
       if (mode === 'symmetry') initSymmetry();
     }
 
-    // --- 共通の図形データ（非対称な図形たち） ---
+    // --- 共通の図形データ ---
     const shapeData = {
       bear: `<svg width="120" height="120" viewBox="0 0 100 100"><circle cx="25" cy="25" r="15" fill="#8D6E63"/><circle cx="75" cy="25" r="15" fill="#8D6E63"/><circle cx="50" cy="55" r="40" fill="#A1887F"/><circle cx="35" cy="45" r="5" fill="#3E2723"/><circle cx="65" cy="45" r="5" fill="#3E2723"/><ellipse cx="50" cy="65" rx="18" ry="14" fill="#D7CCC8"/><circle cx="50" cy="60" r="5" fill="#3E2723"/><path d="M 50 65 Q 50 75 42 72 M 50 65 Q 50 75 58 72" fill="none" stroke="#3E2723" stroke-width="2"/></svg>`,
       triangle: `<svg width="120" height="120" viewBox="0 0 100 100"><polygon points="50,15 15,85 85,85" fill="#FF7043" stroke="#D84315" stroke-width="4" stroke-linejoin="round"/></svg>`,
       arrow: `<svg width="120" height="120" viewBox="0 0 100 100"><polygon points="50,15 85,50 65,50 65,85 35,85 35,50 15,50" fill="#42A5F5" stroke="#1E88E5" stroke-width="4" stroke-linejoin="round"/></svg>`,
       f: `<svg width="120" height="120" viewBox="0 0 100 100"><rect x="25" y="15" width="20" height="70" fill="#9C27B0" rx="2"/><rect x="45" y="15" width="35" height="20" fill="#9C27B0" rx="2"/><rect x="45" y="45" width="25" height="20" fill="#9C27B0" rx="2"/></svg>`,
-      // 線対称用の追加図形（ライオン、ラッパ）
       lion: `<svg width="140" height="140" viewBox="0 0 100 100">
-               <!-- たてがみ（非対称にアレンジ） -->
-               <circle cx="50" cy="50" r="42" fill="#FFB300"/>
-               <circle cx="20" cy="30" r="15" fill="#FFA000"/>
-               <circle cx="80" cy="30" r="15" fill="#FFA000"/>
-               <circle cx="20" cy="70" r="15" fill="#FFA000"/>
-               <circle cx="80" cy="70" r="15" fill="#FFA000"/>
-               <!-- 顔 -->
-               <circle cx="50" cy="52" r="32" fill="#FFE082"/>
-               <!-- 目 -->
-               <circle cx="38" cy="44" r="4" fill="#3E2723"/>
-               <circle cx="62" cy="44" r="4" fill="#3E2723"/>
-               <!-- 鼻・口 -->
-               <polygon points="50,52 44,48 56,48" fill="#3E2723"/>
-               <path d="M 50 52 Q 50 64 42 62 M 50 52 Q 50 64 58 62" fill="none" stroke="#3E2723" stroke-width="2"/>
-               <!-- ヒゲのような非対称のワンポイント -->
-               <circle cx="30" cy="58" r="3" fill="#D7CCC8"/>
+               <circle cx="50" cy="50" r="42" fill="#FFB300"/><circle cx="20" cy="30" r="15" fill="#FFA000"/><circle cx="80" cy="30" r="15" fill="#FFA000"/><circle cx="20" cy="70" r="15" fill="#FFA000"/><circle cx="80" cy="70" r="15" fill="#FFA000"/>
+               <circle cx="50" cy="52" r="32" fill="#FFE082"/><circle cx="38" cy="44" r="4" fill="#3E2723"/><circle cx="62" cy="44" r="4" fill="#3E2723"/>
+               <polygon points="50,52 44,48 56,48" fill="#3E2723"/><path d="M 50 52 Q 50 64 42 62 M 50 52 Q 50 64 58 62" fill="none" stroke="#3E2723" stroke-width="2"/><circle cx="30" cy="58" r="3" fill="#D7CCC8"/>
              </svg>`,
       trumpet: `<svg width="140" height="140" viewBox="0 0 100 100">
-                <!-- ラッパ（左右非対称） -->
                 <path d="M 20 60 Q 40 60 70 30 L 85 20 Q 90 15 95 25 L 85 45 Q 80 50 70 50 L 30 75 Z" fill="#FFD54F" stroke="#F57C00" stroke-width="3" stroke-linejoin="round"/>
-                <path d="M 35 62 L 25 78 L 45 70 Z" fill="#FFA000"/>
-                <ellipse cx="88" cy="22" rx="6" ry="10" fill="#FFE082" stroke="#F57C00" stroke-width="2" transform="rotate(45 88 22)"/>
+                <path d="M 35 62 L 25 78 L 45 70 Z" fill="#FFA000"/><ellipse cx="88" cy="22" rx="6" ry="10" fill="#FFE082" stroke="#F57C00" stroke-width="2" transform="rotate(45 88 22)"/>
               </svg>`
     };
 
-    // --- お絵描き機能用の変数と処理 ---
-    let targetMode = 'cube'; // 'cube' または 'symmetry'
+    // --- お絵描き機能 ---
+    let targetMode = 'cube';
     const drawModal = document.getElementById('drawModal');
     const canvas = document.getElementById('drawCanvas');
     const ctx = canvas.getContext('2d');
@@ -370,12 +352,7 @@
     canvas.addEventListener('mouseleave', () => isDrawing = false);
 
     function clearCanvas() { ctx.clearRect(0, 0, canvas.width, canvas.height); }
-
-    function openDrawModal(mode) {
-      targetMode = mode;
-      clearCanvas();
-      drawModal.style.display = 'flex';
-    }
+    function openDrawModal(mode) { targetMode = mode; clearCanvas(); drawModal.style.display = 'flex'; }
 
     function applyDrawing() {
       const dataURL = canvas.toDataURL();
@@ -391,9 +368,8 @@
       }
     }
 
-
     // ==========================================
-    // 📦 立方体回転モードのスクリプト
+    // 📦 立方体回転モード
     // ==========================================
     let currentAngle = 0;
     let currentX = 0; 
@@ -429,7 +405,7 @@
           cube.style.transition = 'none';
           currentX = 0;
           applyTransform();
-          setTimeout(() => { cube.style.transition = 'transform 1.2s cubic-bezier(0.4, 0, 0.2, 1);'; }, 50);
+          setTimeout(() => { cube.style.transition = 'transform 1.2s cubic-bezier(0.4, 0, 0.2, 1)'; }, 50);
         }, 1200);
       }
       applyTransform();
@@ -443,7 +419,7 @@
           cube.style.transition = 'none';
           currentX = 0;
           applyTransform();
-          setTimeout(() => { cube.style.transition = 'transform 1.2s cubic-bezier(0.4, 0, 0.2, 1);'; }, 50);
+          setTimeout(() => { cube.style.transition = 'transform 1.2s cubic-bezier(0.4, 0, 0.2, 1)'; }, 50);
         }, 1200);
       }
       applyTransform();
@@ -461,11 +437,11 @@
       }
     }
 
-
     // ==========================================
-    // 🦋 線対称トレーニングモードのスクリプト
+    // 🦋 線対称トレーニングモード
     // ==========================================
     let symCustomImage = null;
+    let isFolded = false;
 
     function initSymmetry() {
       updateSymShape();
@@ -485,10 +461,9 @@
         symCustomImage = null;
         leftBox.innerHTML = shapeData[val];
       }
-      document.getElementById('symRightBox').innerHTML = '';
+      resetSymmetry();
     }
 
-    // セレクトボックス変更時のハンドラ拡張
     document.getElementById('symShapeSelect').addEventListener('change', function(e) {
       if (e.target.value === 'draw') {
         openDrawModal('symmetry');
@@ -496,61 +471,83 @@
     });
 
     function resetSymmetry() {
+      isFolded = false;
       document.getElementById('symRightBox').innerHTML = '';
-      document.getElementById('flyingContainer').innerHTML = '';
+      document.getElementById('flippingLayer').innerHTML = '';
+      const actionBtn = document.getElementById('actionBtn');
+      actionBtn.innerText = 'おる';
+      actionBtn.style.backgroundColor = '#FF9800';
+      actionBtn.style.boxShadow = '0 4px 0px #F57C00';
     }
 
-    function foldSymmetry() {
-      const rightBox = document.getElementById('symRightBox');
-      // すでに右側に表示されている場合は何もしない
-      if (rightBox.innerHTML !== '') return;
+    function toggleFold() {
+      if (!isFolded) {
+        // ---「おる」動作（アニメーション開始）---
+        isFolded = true;
+        const actionBtn = document.getElementById('actionBtn');
+        actionBtn.innerText = 'もどす';
+        actionBtn.style.backgroundColor = '#9e9e9e';
+        actionBtn.style.boxShadow = '0 4px 0px #616161';
 
-      const leftBox = document.getElementById('symLeftBox');
-      const flyingContainer = document.getElementById('flyingContainer');
+        const leftBox = document.getElementById('symLeftBox');
+        const workspace = document.querySelector('.symmetry-workspace');
+        const workspaceRect = workspace.getBoundingClientRect();
+        const leftRect = leftBox.getBoundingClientRect();
 
-      // 左側のコンテンツをコピーして、中央の軸（workspaceの中央）からパタンと右側に回転させるアニメーション
-      const workspaceRect = document.querySelector('.symmetry-workspace').getBoundingClientRect();
-      const leftRect = leftBox.getBoundingClientRect();
-      
-      // 飛行要素を作成
-      const flyer = document.createElement('div');
-      flyer.innerHTML = leftBox.innerHTML;
-      flyer.style.position = 'absolute';
-      flyer.style.left = (leftRect.left - workspaceRect.left) + 'px';
-      flyer.style.top = (leftRect.top - workspaceRect.top) + 'px';
-      flyer.style.width = leftRect.width + 'px';
-      flyer.style.height = leftRect.height + 'px';
-      flyer.style.display = 'flex';
-      flyer.style.alignItems = 'center';
-      flyer.style.justifyContent = 'center';
-      flyer.style.transformOrigin = 'right center'; // 軸側（右端）を基点にして左側にめくれる or 軸を基点に右側へ
-      flyer.style.transition = 'transform 1.2s cubic-bezier(0.4, 0, 0.2, 1)';
-      flyer.style.transformStyle = 'preserve-3d';
+        // 中央線（軸）のワークスペース内でのX座標を計算
+        const axisX = workspaceRect.width / 2;
+        const boxWidth = leftRect.width;
+        const boxHeight = leftRect.height;
+        const boxTop = leftRect.top - workspaceRect.top;
 
-      // 左右反転した見た目を作るために、内部を包む
-      flyer.innerHTML = `<div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; transform: scaleX(-1);">${leftBox.innerHTML}</div>`;
-
-      flyingContainer.appendChild(flyer);
-
-      // アニメーション発動
-      setTimeout(() => {
-        // 左側の位置から右側の位置へ移動しつつ、scaleX(-1)の反転を完了させる
-        const rightRect = rightBox.getBoundingClientRect();
-        const deltaX = rightRect.left - leftRect.left;
+        // 軸を右端とするフリップ用要素を作成
+        const layer = document.getElementById('flippingLayer');
+        const card = document.createElement('div');
         
-        flyer.style.transform = `translateX(${deltaX}px) rotateY(180deg)`;
-      }, 50);
+        // 初期位置：左側のボックスの位置に合わせるが、回転軸を右端（軸の位置）にするため配置を調整
+        const startLeft = (leftRect.left - workspaceRect.left);
+        
+        card.style.position = 'absolute';
+        card.style.left = startLeft + 'px';
+        card.style.top = boxTop + 'px';
+        card.style.width = boxWidth + 'px';
+        card.style.height = boxHeight + 'px';
+        card.style.transformOrigin = 'right center'; // 右端（真ん中の線）を軸にする
+        card.style.transformStyle = 'preserve-3d';
+        card.style.transition = 'transform 1.2s cubic-bezier(0.25, 1, 0.5, 1)'; // 滑らかなアニメーション
 
-      // アニメーション終了後に実体を右側ボックスに入れ、飛行要素を消す
-      setTimeout(() => {
-        rightBox.innerHTML = leftBox.innerHTML;
-        // 右側は線対称（左右反転）状態で表示
-        rightBox.firstElementChild.style.transform = 'scaleX(-1)';
-        flyingContainer.innerHTML = '';
-      }, 1250);
+        // 表面（もとの絵）と裏面（反転した絵）を持つ立体カード構造
+        card.innerHTML = `
+          <div style="position:absolute; width:100%; height:100%; backface-visibility:hidden; display:flex; align-items:center; justify-content:center; background:#fff; border-radius:12px; border:2px dashed #ccc;">
+            ${leftBox.innerHTML}
+          </div>
+          <div style="position:absolute; width:100%; height:100%; backface-visibility:hidden; display:flex; align-items:center; justify-content:center; background:#fff; border-radius:12px; border:2px dashed #ccc; transform: rotateY(180deg) scaleX(-1);">
+            ${leftBox.innerHTML}
+          </div>
+        `;
+
+        layer.appendChild(card);
+
+        // わずかに遅れて180度回転（パタンと右側に倒れる）
+        setTimeout(() => {
+          card.style.transform = 'rotateY(180deg)';
+        }, 50);
+
+        // アニメーション完了後にフリップ要素を消し、右側のボックスに正解を表示
+        setTimeout(() => {
+          layer.innerHTML = '';
+          const rightBox = document.getElementById('symRightBox');
+          rightBox.innerHTML = leftBox.innerHTML;
+          rightBox.firstElementChild.style.transform = 'scaleX(-1)'; // 完全に左右反転させる
+        }, 1250);
+
+      } else {
+        // ---「もどす」動作（リセット）---
+        resetSymmetry();
+      }
     }
 
-    // 初期化実行
+    // 初期化
     updateCubeShape();
   </script>
 </body>
