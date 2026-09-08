@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>図形イメージトレーニングゲーム</title>
 <style>
   body {
@@ -17,6 +17,7 @@
     color: #333;
     margin: 0;
     box-sizing: border-box;
+    touch-action: manipulation;
   }
   h1 { 
     font-size: 28px; 
@@ -57,7 +58,7 @@
     border-radius: 0 20px 20px 20px;
     box-shadow: 0 10px 30px rgba(0,0,0,0.06);
     width: 100%;
-    max-width: 1200px; /* 全体幅を拡大 */
+    max-width: 1200px;
     box-sizing: border-box;
   }
   .game-mode.active {
@@ -79,11 +80,11 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 15px; /* 隙間を詰めてステージを最大化 */
+    gap: 15px;
     width: 100%;
   }
   .scene-container {
-    width: 1000px; /* 幅を1000pxに大幅拡大 */
+    width: 1000px;
     height: 320px;
     display: flex;
     align-items: center;
@@ -110,7 +111,6 @@
   .top { transform: rotateX(90deg) translateZ(80px); background: #f0f0f0; }
   .bottom { transform: rotateX(-90deg) translateZ(80px); background: #e0e0e0; }
 
-  /* 矢印専用ボタン（コンパクト化） */
   .arrow-btn {
     font-size: 32px;
     padding: 20px 15px;
@@ -143,7 +143,6 @@
     position: relative;
   }
   
-  /* 中央軸線 */
   .sym-axis {
     position: absolute;
     left: 50%;
@@ -156,7 +155,6 @@
     box-shadow: 0 0 10px rgba(255, 87, 34, 0.5);
   }
 
-  /* 中央線上の「おる/もどす」ボタン */
   .fold-btn-container {
     position: absolute;
     left: 50%;
@@ -181,7 +179,6 @@
     position: relative;
   }
 
-  /* 共通ボタン */
   button {
     font-size: 18px;
     font-weight: bold;
@@ -212,7 +209,6 @@
 
   <h1>🎲 図形イメージトレーニングゲーム</h1>
 
-  <!-- タブ切替 -->
   <div class="tab-container">
     <button class="tab-btn active" id="tabCube" onclick="switchMode('cube')">📦 立方体回転モード</button>
     <button class="tab-btn" id="tabSymmetry" onclick="switchMode('symmetry')">🦋 線対称トレーニングモード</button>
@@ -232,7 +228,6 @@
     </div>
 
     <div class="cube-layout">
-      <!-- 矢印のみのシンプルなボタン -->
       <button class="btn-blue arrow-btn" onclick="rollLeft()">◀</button>
       
       <div class="scene-container">
@@ -273,45 +268,40 @@
     </div>
 
     <div class="symmetry-workspace">
-      <!-- 中央の赤い線（軸） -->
       <div class="sym-axis"></div>
 
-      <!-- 中央線上のボタン：「おる」⇔「もどす」 -->
       <div class="fold-btn-container">
         <button id="actionBtn" class="btn-orange" onclick="toggleFold()" style="padding: 12px 24px; font-size:18px; border-radius: 30px;">おる</button>
       </div>
 
-      <!-- 左側（元図形） -->
       <div class="sym-half">
         <div class="sym-label">ひだり（もと）</div>
         <div class="content-box" id="symLeftBox"></div>
       </div>
 
-      <!-- 右側（対称エリア） -->
       <div class="sym-half">
         <div class="sym-label">みぎ（線対称）</div>
         <div class="content-box" id="symRightBox"></div>
       </div>
 
-      <!-- アニメーション用レイヤー -->
       <div id="flippingLayer" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; overflow: hidden; z-index: 20;"></div>
     </div>
   </div>
 
-  <!-- お絵描きポップアップ -->
+  <!-- お絵描きポップアップ（360px×360pxに拡大） -->
   <div id="drawModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:100; align-items:center; justify-content:center;">
-    <div style="background:#fff; padding:25px; border-radius:20px; text-align:center; box-shadow:0 10px 30px rgba(0,0,0,0.2);">
-      <h3 style="margin-top:0;">お絵描きキャンバス</h3>
-      <canvas id="drawCanvas" width="240" height="240" style="border:3px dashed #bbb; background:#fff; cursor:crosshair; border-radius:12px; display:block; margin:0 auto 15px auto;"></canvas>
-      <div style="display:flex; justify-content:center; gap:15px;">
-        <button onclick="clearCanvas()" style="background-color: #E53935; box-shadow: 0 4px 0px #B71C1C; font-size:16px; padding:10px 20px;">けす</button>
-        <button onclick="applyDrawing()" style="background-color: #43A047; box-shadow: 0 4px 0px #1B5E20; font-size:16px; padding:10px 20px;">これで決まり！</button>
+    <div style="background:#fff; padding:25px; border-radius:20px; text-align:center; box-shadow:0 10px 30px rgba(0,0,0,0.2); max-width: 90vw;">
+      <h3 style="margin-top:0; margin-bottom:15px; font-size:20px;">お絵描きキャンバス（画用紙）</h3>
+      <!-- 画用紙サイズを360x360へ大型化 -->
+      <canvas id="drawCanvas" width="360" height="360" style="border:3px dashed #bbb; background:#fff; cursor:crosshair; border-radius:12px; display:block; margin:0 auto 20px auto; touch-action: none;"></canvas>
+      <div style="display:flex; justify-content:center; gap:20px;">
+        <button onclick="clearCanvas()" style="background-color: #E53935; box-shadow: 0 4px 0px #B71C1C; font-size:16px; padding:12px 24px;">けす</button>
+        <button onclick="applyDrawing()" style="background-color: #43A047; box-shadow: 0 4px 0px #1B5E20; font-size:16px; padding:12px 24px;">これで決まり！</button>
       </div>
     </div>
   </div>
 
   <script>
-    // --- モード切替タブ ---
     function switchMode(mode) {
       document.getElementById('tabCube').classList.toggle('active', mode === 'cube');
       document.getElementById('tabSymmetry').classList.toggle('active', mode === 'symmetry');
@@ -320,7 +310,6 @@
       if (mode === 'symmetry') initSymmetry();
     }
 
-    // --- 図形データ ---
     const shapeData = {
       bear: `<svg width="140" height="140" viewBox="0 0 100 100"><circle cx="25" cy="25" r="15" fill="#8D6E63"/><circle cx="75" cy="25" r="15" fill="#8D6E63"/><circle cx="50" cy="55" r="40" fill="#A1887F"/><circle cx="35" cy="45" r="5" fill="#3E2723"/><circle cx="65" cy="45" r="5" fill="#3E2723"/><ellipse cx="50" cy="65" rx="18" ry="14" fill="#D7CCC8"/><circle cx="50" cy="60" r="5" fill="#3E2723"/><path d="M 50 65 Q 50 75 42 72 M 50 65 Q 50 75 58 72" fill="none" stroke="#3E2723" stroke-width="2"/></svg>`,
       triangle: `<svg width="140" height="140" viewBox="0 0 100 100"><polygon points="50,15 15,85 85,85" fill="#FF7043" stroke="#D84315" stroke-width="4" stroke-linejoin="round"/></svg>`,
@@ -345,7 +334,7 @@
              </svg>`
     };
 
-    // --- お絵描き機能 ---
+    // --- お絵描き機能（マウス＆タッチ両対応） ---
     let targetMode = 'cube';
     const drawModal = document.getElementById('drawModal');
     const canvas = document.getElementById('drawCanvas');
@@ -355,17 +344,47 @@
     ctx.lineCap = 'round';
     ctx.strokeStyle = '#333';
 
-    function getMousePos(e) {
+    // マウス/タッチ共通の座標取得処理
+    function getPos(e) {
       const rect = canvas.getBoundingClientRect();
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
       return {
-        x: (e.clientX - rect.left) * (canvas.width / rect.width),
-        y: (e.clientY - rect.top) * (canvas.height / rect.height)
+        x: (clientX - rect.left) * (canvas.width / rect.width),
+        y: (clientY - rect.top) * (canvas.height / rect.height)
       };
     }
-    canvas.addEventListener('mousedown', (e) => { isDrawing = true; const pos = getMousePos(e); ctx.beginPath(); ctx.moveTo(pos.x, pos.y); });
-    canvas.addEventListener('mousemove', (e) => { if (!isDrawing) return; const pos = getMousePos(e); ctx.lineTo(pos.x, pos.y); ctx.stroke(); });
-    canvas.addEventListener('mouseup', () => isDrawing = false);
-    canvas.addEventListener('mouseleave', () => isDrawing = false);
+
+    function startDrawing(e) {
+      if (e.type === 'touchstart') e.preventDefault(); // タブレットのスクロール防止
+      isDrawing = true;
+      const pos = getPos(e);
+      ctx.beginPath();
+      ctx.moveTo(pos.x, pos.y);
+    }
+
+    function draw(e) {
+      if (!isDrawing) return;
+      if (e.type === 'touchmove') e.preventDefault(); // タブレットのスクロール防止
+      const pos = getPos(e);
+      ctx.lineTo(pos.x, pos.y);
+      ctx.stroke();
+    }
+
+    function stopDrawing() {
+      isDrawing = false;
+    }
+
+    // マウスイベント
+    canvas.addEventListener('mousedown', startDrawing);
+    canvas.addEventListener('mousemove', draw);
+    canvas.addEventListener('mouseup', stopDrawing);
+    canvas.addEventListener('mouseleave', stopDrawing);
+
+    // タッチイベント（タブレット・スマホ対応）
+    canvas.addEventListener('touchstart', startDrawing, { passive: false });
+    canvas.addEventListener('touchmove', draw, { passive: false });
+    canvas.addEventListener('touchend', stopDrawing);
 
     function clearCanvas() { ctx.clearRect(0, 0, canvas.width, canvas.height); }
     function openDrawModal(mode) { targetMode = mode; clearCanvas(); drawModal.style.display = 'flex'; }
@@ -390,7 +409,7 @@
     let currentAngle = 0;
     let currentX = 0; 
     const cubeSize = 160; 
-    const maxLimit = 480; // ステージ幅拡大に伴い可動域を延長
+    const maxLimit = 480; 
 
     const cube = document.getElementById('cube');
     const tilt = document.getElementById('tilt');
@@ -458,7 +477,7 @@
     // ==========================================
     let symCustomImage = null;
     let isFolded = false;
-    let isAnimating = false; // アニメーション中の連打防止
+    let isAnimating = false;
 
     function initSymmetry() {
       updateSymShape();
@@ -498,12 +517,11 @@
     }
 
     function toggleFold() {
-      if (isAnimating) return; // アニメーション中は操作を無効化
+      if (isAnimating) return;
 
       const actionBtn = document.getElementById('actionBtn');
 
       if (!isFolded) {
-        // ---「おる」動作（ゆっくり3秒で右に折る）---
         isAnimating = true;
         isFolded = true;
 
@@ -533,7 +551,6 @@
         card.style.height = boxHeight + 'px';
         card.style.transformOrigin = 'right center';
         card.style.transformStyle = 'preserve-3d';
-        // 3秒間かけて滑らかに回転
         card.style.transition = 'transform 3.0s cubic-bezier(0.25, 1, 0.3, 1)';
 
         card.innerHTML = `
@@ -555,13 +572,11 @@
           card.style.transform = 'rotateY(180deg)';
         }, 50);
 
-        // 3秒後にアニメーション完了フラグを解除
         setTimeout(() => {
           isAnimating = false;
         }, 3050);
 
       } else {
-        // ---「もどす」動作（ゆっくり3秒で左に戻る）---
         isAnimating = true;
         const card = document.getElementById('activeFoldCard');
 
@@ -573,7 +588,6 @@
         actionBtn.style.backgroundColor = '#FF9800';
         actionBtn.style.boxShadow = '0 4px 0px #F57C00';
 
-        // 3秒後にレイヤーをクリアして状態リセット
         setTimeout(() => {
           resetSymmetry();
         }, 3000);
