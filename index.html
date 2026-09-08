@@ -121,7 +121,7 @@
     position: relative;
     overflow: hidden;
     margin-bottom: 20px;
-    perspective: 1400px;
+    perspective: 1200px;
   }
   .sym-half {
     width: 50%;
@@ -133,7 +133,7 @@
     position: relative;
   }
   
-  /* 中央線 */
+  /* 中央軸線 */
   .sym-axis {
     position: absolute;
     left: 50%;
@@ -146,7 +146,7 @@
     box-shadow: 0 0 10px rgba(255, 87, 34, 0.5);
   }
 
-  /* 中央線上のボタン：「おる」⇔「もどす」 */
+  /* 中央線上の「おる/もどす」ボタン */
   .fold-btn-container {
     position: absolute;
     left: 50%;
@@ -254,8 +254,8 @@
     <div class="controls">
       <label for="symShapeSelect"><b>左側の模様：</b></label>
       <select id="symShapeSelect" onchange="updateSymShape()">
-        <option value="lion" selected>ライオン</option>
-        <option value="trumpet">ラッパ</option>
+        <option value="elephant" selected>ぞう（横向き）</option>
+        <option value="yacht">ヨット</option>
         <option value="f">アルファベット「F」</option>
         <option value="draw">お絵描き 🎨</option>
       </select>
@@ -276,13 +276,13 @@
         <div class="content-box" id="symLeftBox"></div>
       </div>
 
-      <!-- 右側（対称図形） -->
+      <!-- 右側（対称エリア） -->
       <div class="sym-half">
         <div class="sym-label">みぎ（線対称）</div>
         <div class="content-box" id="symRightBox"></div>
       </div>
 
-      <!-- アニメーション用フリップレイヤー -->
+      <!-- アニメーション用レイヤー -->
       <div id="flippingLayer" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; overflow: hidden; z-index: 20;"></div>
     </div>
   </div>
@@ -309,27 +309,31 @@
       if (mode === 'symmetry') initSymmetry();
     }
 
-    // --- 共通の図形データ（ライオン・ラッパをよりわかりやすく大型化） ---
+    // --- 図形データ（非対称で分かりやすいイラストに刷新） ---
     const shapeData = {
       bear: `<svg width="140" height="140" viewBox="0 0 100 100"><circle cx="25" cy="25" r="15" fill="#8D6E63"/><circle cx="75" cy="25" r="15" fill="#8D6E63"/><circle cx="50" cy="55" r="40" fill="#A1887F"/><circle cx="35" cy="45" r="5" fill="#3E2723"/><circle cx="65" cy="45" r="5" fill="#3E2723"/><ellipse cx="50" cy="65" rx="18" ry="14" fill="#D7CCC8"/><circle cx="50" cy="60" r="5" fill="#3E2723"/><path d="M 50 65 Q 50 75 42 72 M 50 65 Q 50 75 58 72" fill="none" stroke="#3E2723" stroke-width="2"/></svg>`,
       triangle: `<svg width="140" height="140" viewBox="0 0 100 100"><polygon points="50,15 15,85 85,85" fill="#FF7043" stroke="#D84315" stroke-width="4" stroke-linejoin="round"/></svg>`,
       arrow: `<svg width="140" height="140" viewBox="0 0 100 100"><polygon points="50,15 85,50 65,50 65,85 35,85 35,50 15,50" fill="#42A5F5" stroke="#1E88E5" stroke-width="4" stroke-linejoin="round"/></svg>`,
       f: `<svg width="140" height="140" viewBox="0 0 100 100"><rect x="25" y="15" width="20" height="70" fill="#9C27B0" rx="2"/><rect x="45" y="15" width="35" height="20" fill="#9C27B0" rx="2"/><rect x="45" y="45" width="25" height="20" fill="#9C27B0" rx="2"/></svg>`,
-      lion: `<svg width="160" height="160" viewBox="0 0 100 100">
-               <!-- ライオン：たてがみと顔をはっきり大きく -->
-               <circle cx="50" cy="50" r="44" fill="#FF8F00"/>
-               <circle cx="50" cy="50" r="34" fill="#FFD54F"/>
-               <circle cx="35" cy="42" r="5" fill="#3E2723"/>
-               <circle cx="65" cy="42" r="5" fill="#3E2723"/>
-               <ellipse cx="50" cy="54" rx="8" ry="6" fill="#3E2723"/>
-               <path d="M 50 60 Q 50 72 40 68 M 50 60 Q 50 72 60 68" fill="none" stroke="#3E2723" stroke-width="3" stroke-linecap="round"/>
-             </svg>`,
-      trumpet: `<svg width="160" height="160" viewBox="0 0 100 100">
-                <!-- ラッパ：形をより大きくシンプルに認識しやすく -->
-                <path d="M 15 65 Q 40 65 70 30 L 88 15 Q 93 10 98 20 L 83 38 Q 78 45 70 45 L 30 78 Z" fill="#FFCA28" stroke="#E65100" stroke-width="4" stroke-linejoin="round"/>
-                <path d="M 30 68 L 18 85 L 42 75 Z" fill="#FFA000" stroke="#E65100" stroke-width="3" stroke-linejoin="round"/>
-                <ellipse cx="90" cy="18" rx="7" ry="12" fill="#FFF59D" stroke="#E65100" stroke-width="3" transform="rotate(45 90 18)"/>
-              </svg>`
+      elephant: `<svg width="150" height="150" viewBox="0 0 100 100">
+                  <!-- ぞう：右に伸びる鼻と大きな耳で非対称性を明確化 -->
+                  <ellipse cx="45" cy="55" rx="25" ry="20" fill="#90A4AE"/>
+                  <circle cx="60" cy="45" r="16" fill="#90A4AE"/>
+                  <ellipse cx="48" cy="42" rx="10" ry="14" fill="#78909C"/>
+                  <path d="M 72 48 Q 92 50 86 30 Q 84 22 78 25" fill="none" stroke="#90A4AE" stroke-width="7" stroke-linecap="round"/>
+                  <circle cx="65" cy="40" r="2.5" fill="#263238"/>
+                  <path d="M 70 52 Q 78 55 75 46" fill="none" stroke="#FFF" stroke-width="3" stroke-linecap="round"/>
+                  <rect x="30" y="70" width="8" height="15" fill="#78909C" rx="3"/>
+                  <rect x="48" y="70" width="8" height="15" fill="#78909C" rx="3"/>
+                  <path d="M 20 52 Q 12 58 14 66" fill="none" stroke="#78909C" stroke-width="3" stroke-linecap="round"/>
+                </svg>`,
+      yacht: `<svg width="150" height="150" viewBox="0 0 100 100">
+               <!-- ヨット：右側に張った大きな帆で非対称性を強調 -->
+               <polygon points="15,70 85,70 75,88 25,88" fill="#8D6E63" stroke="#5D4037" stroke-width="3" stroke-linejoin="round"/>
+               <line x1="38" y1="12" x2="38" y2="70" stroke="#4E342E" stroke-width="4" stroke-linecap="round"/>
+               <polygon points="42,16 88,62 42,62" fill="#FF5252"/>
+               <polygon points="38,12 22,18 38,24" fill="#FFD54F"/>
+             </svg>`
     };
 
     // --- お絵描き機能 ---
@@ -475,7 +479,6 @@
 
     function resetSymmetry() {
       isFolded = false;
-      document.getElementById('symRightBox').innerHTML = '';
       document.getElementById('flippingLayer').innerHTML = '';
       const actionBtn = document.getElementById('actionBtn');
       actionBtn.innerText = 'おる';
@@ -485,7 +488,7 @@
 
     function toggleFold() {
       if (!isFolded) {
-        // ---「おる」動作（約2秒かけてアニメーション、終了後にカクッとずれないようピタッと静止）---
+        // ---「おる」動作（中央線を軸にぴったり倒し、そのまま静止）---
         isFolded = true;
         const actionBtn = document.getElementById('actionBtn');
         actionBtn.innerText = 'もどす';
@@ -497,10 +500,14 @@
         const workspaceRect = workspace.getBoundingClientRect();
         const leftRect = leftBox.getBoundingClientRect();
 
-        const boxWidth = leftRect.width;
+        // 中央線（赤線）の正確なX座標（＝回転軸）
+        const axisX = workspaceRect.width / 2;
+        const startLeft = leftRect.left - workspaceRect.left;
+        
+        // 左端から中央軸までの距離をカードの幅にする（軸をぴったり右端に設定するため）
+        const cardWidth = axisX - startLeft;
         const boxHeight = leftRect.height;
         const boxTop = leftRect.top - workspaceRect.top;
-        const startLeft = leftRect.left - workspaceRect.left;
 
         const layer = document.getElementById('flippingLayer');
         const card = document.createElement('div');
@@ -508,19 +515,23 @@
         card.style.position = 'absolute';
         card.style.left = startLeft + 'px';
         card.style.top = boxTop + 'px';
-        card.style.width = boxWidth + 'px';
+        card.style.width = cardWidth + 'px';
         card.style.height = boxHeight + 'px';
-        card.style.transformOrigin = 'right center'; // 中央線を軸にする
+        card.style.transformOrigin = 'right center'; // 赤い中央線を完璧に回転軸にする
         card.style.transformStyle = 'preserve-3d';
         card.style.transition = 'transform 2.0s cubic-bezier(0.25, 1, 0.5, 1)';
 
-        // 表面と裏面（裏面は最初から完全に左右反転 scaleX(-1) を組み込んでおくことで、アニメーション後にズレが発生しないように修正）
+        // カードの表面と裏面（裏面はすでに完全に線対称反転した状態）
         card.innerHTML = `
-          <div style="position:absolute; width:100%; height:100%; backface-visibility:hidden; display:flex; align-items:center; justify-content:center;">
-            ${leftBox.innerHTML}
+          <div style="position:absolute; width:100%; height:100%; backface-visibility:hidden; display:flex; align-items:center; justify-content:flex-start;">
+            <div style="width:${leftRect.width}px; height:${leftRect.height}px; display:flex; align-items:center; justify-content:center;">
+              ${leftBox.innerHTML}
+            </div>
           </div>
-          <div style="position:absolute; width:100%; height:100%; backface-visibility:hidden; display:flex; align-items:center; justify-content:center; transform: rotateY(180deg) scaleX(-1);">
-            ${leftBox.innerHTML}
+          <div style="position:absolute; width:100%; height:100%; backface-visibility:hidden; display:flex; align-items:center; justify-content:flex-start; transform: rotateY(180deg) scaleX(-1);">
+            <div style="width:${leftRect.width}px; height:${leftRect.height}px; display:flex; align-items:center; justify-content:center;">
+              ${leftBox.innerHTML}
+            </div>
           </div>
         `;
 
@@ -531,14 +542,7 @@
           card.style.transform = 'rotateY(180deg)';
         }, 50);
 
-        // 2秒のアニメーション終了後、フリップ要素を残したまま（あるいは裏面と全く同じ見た目のまま）右側にすんなり配置を固定
-        setTimeout(() => {
-          const rightBox = document.getElementById('symRightBox');
-          // 裏面の状態（完全に対象となった状態）のHTMLをそのまま右側に配置し、アニメーションレイヤーをクリアする
-          const innerClone = leftBox.innerHTML;
-          layer.innerHTML = '';
-          rightBox.innerHTML = `<div style="display:flex; align-items:center; justify-content:center; transform: scaleX(-1);">${innerClone}</div>`;
-        }, 2050);
+        // ※アニメーション終了後に要素を差し替えない（そのまま静止させる）ため、ずれる現象は絶対に発生しません
 
       } else {
         // ---「もどす」動作---
