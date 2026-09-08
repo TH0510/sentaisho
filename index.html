@@ -57,7 +57,7 @@
     border-radius: 0 20px 20px 20px;
     box-shadow: 0 10px 30px rgba(0,0,0,0.06);
     width: 100%;
-    max-width: 1100px;
+    max-width: 1200px; /* 全体幅を拡大 */
     box-sizing: border-box;
   }
   .game-mode.active {
@@ -79,12 +79,12 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 30px;
+    gap: 15px; /* 隙間を詰めてステージを最大化 */
     width: 100%;
   }
   .scene-container {
-    width: 800px; 
-    height: 300px;
+    width: 1000px; /* 幅を1000pxに大幅拡大 */
+    height: 320px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -109,6 +109,16 @@
   .left { transform: rotateY(-90deg) translateZ(80px); }
   .top { transform: rotateX(90deg) translateZ(80px); background: #f0f0f0; }
   .bottom { transform: rotateX(-90deg) translateZ(80px); background: #e0e0e0; }
+
+  /* 矢印専用ボタン（コンパクト化） */
+  .arrow-btn {
+    font-size: 32px;
+    padding: 20px 15px;
+    min-width: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
 
   /* --- 線対称モードのスタイル --- */
   .symmetry-workspace {
@@ -193,7 +203,7 @@
     display: flex;
     flex-direction: column;
     gap: 15px;
-    padding-left: 20px;
+    padding-left: 15px;
     border-left: 2px dashed #ccc;
   }
 </style>
@@ -222,7 +232,8 @@
     </div>
 
     <div class="cube-layout">
-      <button class="btn-blue" onclick="rollLeft()">◀ 左にころがる</button>
+      <!-- 矢印のみのシンプルなボタン -->
+      <button class="btn-blue arrow-btn" onclick="rollLeft()">◀</button>
       
       <div class="scene-container">
         <div class="scene">
@@ -239,7 +250,7 @@
         </div>
       </div>
 
-      <button class="btn-green" onclick="rollRight()">右にころがる ▶</button>
+      <button class="btn-green arrow-btn" onclick="rollRight()">▶</button>
 
       <div class="view-controls">
         <div style="font-size:14px; font-weight:bold; color:#666; text-align:center;">視点きりかえ</div>
@@ -309,14 +320,13 @@
       if (mode === 'symmetry') initSymmetry();
     }
 
-    // --- 図形データ（非対称で分かりやすいイラストに刷新） ---
+    // --- 図形データ ---
     const shapeData = {
       bear: `<svg width="140" height="140" viewBox="0 0 100 100"><circle cx="25" cy="25" r="15" fill="#8D6E63"/><circle cx="75" cy="25" r="15" fill="#8D6E63"/><circle cx="50" cy="55" r="40" fill="#A1887F"/><circle cx="35" cy="45" r="5" fill="#3E2723"/><circle cx="65" cy="45" r="5" fill="#3E2723"/><ellipse cx="50" cy="65" rx="18" ry="14" fill="#D7CCC8"/><circle cx="50" cy="60" r="5" fill="#3E2723"/><path d="M 50 65 Q 50 75 42 72 M 50 65 Q 50 75 58 72" fill="none" stroke="#3E2723" stroke-width="2"/></svg>`,
       triangle: `<svg width="140" height="140" viewBox="0 0 100 100"><polygon points="50,15 15,85 85,85" fill="#FF7043" stroke="#D84315" stroke-width="4" stroke-linejoin="round"/></svg>`,
       arrow: `<svg width="140" height="140" viewBox="0 0 100 100"><polygon points="50,15 85,50 65,50 65,85 35,85 35,50 15,50" fill="#42A5F5" stroke="#1E88E5" stroke-width="4" stroke-linejoin="round"/></svg>`,
       f: `<svg width="140" height="140" viewBox="0 0 100 100"><rect x="25" y="15" width="20" height="70" fill="#9C27B0" rx="2"/><rect x="45" y="15" width="35" height="20" fill="#9C27B0" rx="2"/><rect x="45" y="45" width="25" height="20" fill="#9C27B0" rx="2"/></svg>`,
       elephant: `<svg width="150" height="150" viewBox="0 0 100 100">
-                  <!-- ぞう：右に伸びる鼻と大きな耳で非対称性を明確化 -->
                   <ellipse cx="45" cy="55" rx="25" ry="20" fill="#90A4AE"/>
                   <circle cx="60" cy="45" r="16" fill="#90A4AE"/>
                   <ellipse cx="48" cy="42" rx="10" ry="14" fill="#78909C"/>
@@ -328,7 +338,6 @@
                   <path d="M 20 52 Q 12 58 14 66" fill="none" stroke="#78909C" stroke-width="3" stroke-linecap="round"/>
                 </svg>`,
       yacht: `<svg width="150" height="150" viewBox="0 0 100 100">
-               <!-- ヨット：右側に張った大きな帆で非対称性を強調 -->
                <polygon points="15,70 85,70 75,88 25,88" fill="#8D6E63" stroke="#5D4037" stroke-width="3" stroke-linejoin="round"/>
                <line x1="38" y1="12" x2="38" y2="70" stroke="#4E342E" stroke-width="4" stroke-linecap="round"/>
                <polygon points="42,16 88,62 42,62" fill="#FF5252"/>
@@ -381,7 +390,7 @@
     let currentAngle = 0;
     let currentX = 0; 
     const cubeSize = 160; 
-    const maxLimit = 400; 
+    const maxLimit = 480; // ステージ幅拡大に伴い可動域を延長
 
     const cube = document.getElementById('cube');
     const tilt = document.getElementById('tilt');
@@ -449,6 +458,7 @@
     // ==========================================
     let symCustomImage = null;
     let isFolded = false;
+    let isAnimating = false; // アニメーション中の連打防止
 
     function initSymmetry() {
       updateSymShape();
@@ -479,6 +489,7 @@
 
     function resetSymmetry() {
       isFolded = false;
+      isAnimating = false;
       document.getElementById('flippingLayer').innerHTML = '';
       const actionBtn = document.getElementById('actionBtn');
       actionBtn.innerText = 'おる';
@@ -487,41 +498,44 @@
     }
 
     function toggleFold() {
+      if (isAnimating) return; // アニメーション中は操作を無効化
+
+      const actionBtn = document.getElementById('actionBtn');
+
       if (!isFolded) {
-        // ---「おる」動作（中央線を軸にぴったり倒し、そのまま静止）---
+        // ---「おる」動作（ゆっくり3秒で右に折る）---
+        isAnimating = true;
         isFolded = true;
-        const actionBtn = document.getElementById('actionBtn');
+
         actionBtn.innerText = 'もどす';
-        actionBtn.style.backgroundColor = '#9e9e9e';
-        actionBtn.style.boxShadow = '0 4px 0px #616161';
+        actionBtn.style.backgroundColor = '#2196F3';
+        actionBtn.style.boxShadow = '0 4px 0px #1565C0';
 
         const leftBox = document.getElementById('symLeftBox');
         const workspace = document.querySelector('.symmetry-workspace');
         const workspaceRect = workspace.getBoundingClientRect();
         const leftRect = leftBox.getBoundingClientRect();
 
-        // 中央線（赤線）の正確なX座標（＝回転軸）
         const axisX = workspaceRect.width / 2;
         const startLeft = leftRect.left - workspaceRect.left;
-        
-        // 左端から中央軸までの距離をカードの幅にする（軸をぴったり右端に設定するため）
         const cardWidth = axisX - startLeft;
         const boxHeight = leftRect.height;
         const boxTop = leftRect.top - workspaceRect.top;
 
         const layer = document.getElementById('flippingLayer');
         const card = document.createElement('div');
+        card.id = 'activeFoldCard';
         
         card.style.position = 'absolute';
         card.style.left = startLeft + 'px';
         card.style.top = boxTop + 'px';
         card.style.width = cardWidth + 'px';
         card.style.height = boxHeight + 'px';
-        card.style.transformOrigin = 'right center'; // 赤い中央線を完璧に回転軸にする
+        card.style.transformOrigin = 'right center';
         card.style.transformStyle = 'preserve-3d';
-        card.style.transition = 'transform 2.0s cubic-bezier(0.25, 1, 0.5, 1)';
+        // 3秒間かけて滑らかに回転
+        card.style.transition = 'transform 3.0s cubic-bezier(0.25, 1, 0.3, 1)';
 
-        // カードの表面と裏面（裏面はすでに完全に線対称反転した状態）
         card.innerHTML = `
           <div style="position:absolute; width:100%; height:100%; backface-visibility:hidden; display:flex; align-items:center; justify-content:flex-start;">
             <div style="width:${leftRect.width}px; height:${leftRect.height}px; display:flex; align-items:center; justify-content:center;">
@@ -537,16 +551,32 @@
 
         layer.appendChild(card);
 
-        // わずかに遅れて180度回転開始
         setTimeout(() => {
           card.style.transform = 'rotateY(180deg)';
         }, 50);
 
-        // ※アニメーション終了後に要素を差し替えない（そのまま静止させる）ため、ずれる現象は絶対に発生しません
+        // 3秒後にアニメーション完了フラグを解除
+        setTimeout(() => {
+          isAnimating = false;
+        }, 3050);
 
       } else {
-        // ---「もどす」動作---
-        resetSymmetry();
+        // ---「もどす」動作（ゆっくり3秒で左に戻る）---
+        isAnimating = true;
+        const card = document.getElementById('activeFoldCard');
+
+        if (card) {
+          card.style.transform = 'rotateY(0deg)';
+        }
+
+        actionBtn.innerText = 'おる';
+        actionBtn.style.backgroundColor = '#FF9800';
+        actionBtn.style.boxShadow = '0 4px 0px #F57C00';
+
+        // 3秒後にレイヤーをクリアして状態リセット
+        setTimeout(() => {
+          resetSymmetry();
+        }, 3000);
       }
     }
 
