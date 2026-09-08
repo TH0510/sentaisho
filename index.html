@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>図形イメージトレーニングゲーム</title>
+<style>
+  body {
+    font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
+    background-color: #f4f7f6;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 20px;
+    color: #333;
+    margin: 0;
+    box-sizing: border-box;
+  }
+  h1 { 
+    font-size: 28px; 
+    color: #4a4a4a; 
+    margin-bottom: 10px;
+  }
+
+  /* モード切替タブ */
+  .tab-container {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .tab-btn {
+    font-size: 16px;
+    font-weight: bold;
+    padding: 10px 20px;
+    background-color: #cfd8dc;
+    color: #546e7a;
+    border: none;
+    border-radius: 10px 10px 0 0;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .tab-btn.active {
+    background-color: #fff;
+    color: #2e7d32;
+    box-shadow: 0 -4px 10px rgba(0,0,0,0.05);
+  }
+
+  /* ゲーム画面の切り替え */
+  .game-mode {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    background: #fff;
+    padding: 30px;
+    border-radius: 0 20px 20px 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+    width: 100%;
+    max-width: 1100px;
+    box-sizing: border-box;
+  }
+  .game-mode.active {
+    display: flex;
+  }
+
+  .controls { margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+  select {
+    padding: 10px 15px;
+    font-size: 16px;
+    border-radius: 8px;
+    border: 2px solid #ccc;
+    cursor: pointer;
+    background-color: white;
+  }
+
+  /* --- 立方体モードのスタイル --- */
+  .cube-layout {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 30px;
+    width: 100%;
+  }
+  .scene-container {
+    width: 800px; 
+    height: 300px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    border-bottom: 5px solid #e0e0e0;
+    overflow: hidden;
+    background: #fafbfc;
+    border-radius: 16px;
+  }
+  .scene { width: 160px; height: 160px; perspective: 900px; }
+  .tilt { width: 100%; height: 100%; transform-style: preserve-3d; transition: transform 0.6s ease; transform: rotateX(0deg) rotateY(0deg); }
+  .cube { width: 100%; height: 100%; position: relative; transform-style: preserve-3d; transition: transform 1.2s cubic-bezier(0.4, 0, 0.2, 1); }
+  .face {
+    position: absolute; width: 160px; height: 160px;
+    background: rgba(255, 255, 255, 0.95); border: 2px solid #ccc;
+    box-sizing: border-box; display: flex; align-items: center; justify-content: center;
+    box-shadow: inset 0 0 20px rgba(0,0,0,0.05);
+  }
+  .front { border: 4px solid #78909c; transform: rotateY(0deg) translateZ(80px); background: #fff; }
+  .right { transform: rotateY(90deg) translateZ(80px); }
+  .back { transform: rotateY(180deg) translateZ(80px); }
+  .left { transform: rotateY(-90deg) translateZ(80px); }
+  .top { transform: rotateX(90deg) translateZ(80px); background: #f0f0f0; }
+  .bottom { transform: rotateX(-90deg) translateZ(80px); background: #e0e0e0; }
+
+  /* --- 線対称モードのスタイル --- */
+  .symmetry-workspace {
+    display: flex;
+    width: 900px;
+    height: 380px;
+    background: #fafbfc;
+    border: 3px solid #e0e0e0;
+    border-radius: 16px;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+  .sym-half {
+    width: 50%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+  .sym-axis {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background-color: #ff5722;
+    z-index: 5;
+    transform: translateX(-2px);
+    box-shadow: 0 0 10px rgba(255, 87, 34, 0.5);
+  }
+  .sym-label {
+    position: absolute;
+    top: 15px;
+    font-weight: bold;
+    font-size: 16px;
+    color: #78909c;
+  }
+  .canvas-box {
+    width: 260px;
+    height: 260px;
+    background: #fff;
+    border: 2px dashed #ccc;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+  
+  /* 線対称の折り返しアニメーション用コンテナ */
+  .moving-shape {
+    position: absolute;
+    width: 260px;
+    height: 260px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 1.2s cubic-bezier(0.4, 0, 0.2, 1), opacity 1.2s ease;
+    transform-origin: left center; /* 軸を基準に回転 */
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  /* 共通ボタン */
+  button {
+    font-size: 18px;
+    font-weight: bold;
+    padding: 15px 25px;
+    color: white;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    box-shadow: 0 4px 0px rgba(0,0,0,0.2);
+    transition: all 0.1s;
+    white-space: nowrap;
+  }
+  button:active { transform: translateY(4px); box-shadow: 0 0px 0px rgba(0,0,0,0.2); }
+  .btn-blue { background-color: #2196F3; box-shadow: 0 4px 0px #1565C0; }
+  .btn-green { background-color: #4CAF50; box-shadow: 0 4px 0px #2E7D32; }
+  .btn-orange { background-color: #FF9800; box-shadow: 0 4px 0px #F57C00; }
+  
+  .view-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    padding-left: 20px;
+    border-left: 2px dashed #ccc;
+  }
+</style>
+</head>
+<body>
+
+  <h1>🎲 図形イメージトレーニングゲーム</h1>
+
+  <!-- タブ切替 -->
+  <div class="tab-container">
+    <button class="tab-btn active" id="tabCube" onclick="switchMode('cube')">📦 立方体回転モード</button>
+    <button class="tab-btn" id="tabSymmetry" onclick="switchMode('symmetry')">🦋 線対称トレーニングモード</button>
+  </div>
+
+  <!-- 立方体回転ゲーム モード -->
+  <div class="game-mode active" id="modeCube">
+    <div class="controls">
+      <label for="shapeSelect"><b>前面の模様：</b></label>
+      <select id="shapeSelect" onchange="updateCubeShape()">
+        <option value="bear" selected>クマの顔</option>
+        <option value="triangle">さんかく</option>
+        <option value="arrow">上向き矢印</option>
+        <option value="f">アルファベット「F」</option>
+        <option value="draw">お絵描き 🎨</option>
+      </select>
+    </div>
+
+    <div class="cube-layout">
+      <button class="btn-blue" onclick="rollLeft()">◀ 左にころがる</button>
+      
+      <div class="scene-container">
+        <div class="scene">
+          <div class="tilt" id="tilt">
+            <div class="cube" id="cube">
+              <div class="face front" id="frontFace"></div>
+              <div class="face back"></div>
+              <div class="face right"></div>
+              <div class="face left"></div>
+              <div class="face top"></div>
+              <div class="face bottom"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn-green" onclick="rollRight()">右にころがる ▶</button>
+
+      <div class="view-controls">
+        <div style="font-size:14px; font-weight:bold; color:#666; text-align:center;">視点きりかえ</div>
+        <button id="btnFront" class="btn-orange" style="font-size:14px; padding:10px;" onclick="setView('front')">真正面</button>
+        <button id="btnDiagonal" class="btn-blue" style="font-size:14px; padding:10px; background-color:#90A4AE; box-shadow:0 4px 0px #607D8B;" onclick="setView('diagonal')">ななめ</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 線対称トレーニング モード -->
+  <div class="game-mode" id="modeSymmetry">
+    <div class="controls">
+      <label for="symShapeSelect"><b>左側の模様：</b></label>
+      <select id="symShapeSelect" onchange="updateSymShape()">
+        <option value="lion" selected>ライオン</option>
+        <option value="trumpet">ラッパ</option>
+        <option value="f">アルファベット「F」</option>
+        <option value="draw">お絵描き 🎨</option>
+      </select>
+      <button class="btn-orange" style="padding: 10px 20px; font-size:16px;" onclick="foldSymmetry()">パタンと折る ▶</button>
+      <button class="btn-blue" style="padding: 10px 20px; font-size:16px; background-color:#9e9e9e; box-shadow:0 4px 0px #616161;" onclick="resetSymmetry()">リセット</button>
+    </div>
+
+    <div class="symmetry-workspace">
+      <!-- 軸 -->
+      <div class="sym-axis"></div>
+
+      <!-- 左側（元図形） -->
+      <div class="sym-half">
+        <div class="sym-label">ひだり（もと）</div>
+        <div class="canvas-box" id="symLeftBox">
+          <!-- 動的挿入 -->
+        </div>
+      </div>
+
+      <!-- 右側（対称図形） -->
+      <div class="sym-half">
+        <div class="sym-label">みぎ（線対称）</div>
+        <div class="canvas-box" id="symRightBox">
+          <!-- アニメーション用または結果の図形 -->
+        </div>
+      </div>
+
+      <!-- パタンと折るときに飛ぶレイヤー -->
+      <div id="flyingContainer" style="position:absolute; left:0; top:0; width:100%; height:100%; pointer-events:none;"></div>
+    </div>
+  </div>
+
+  <!-- お絵描きポップアップ -->
+  <div id="drawModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:100; align-items:center; justify-content:center;">
+    <div style="background:#fff; padding:25px; border-radius:20px; text-align:center; box-shadow:0 10px 30px rgba(0,0,0,0.2);">
+      <h3 style="margin-top:0;">お絵描きキャンバス</h3>
+      <canvas id="drawCanvas" width="240" height="240" style="border:3px dashed #bbb; background:#fff; cursor:crosshair; border-radius:12px; display:block; margin:0 auto 15px auto;"></canvas>
+      <div style="display:flex; justify-content:center; gap:15px;">
+        <button onclick="clearCanvas()" style="background-color: #E53935; box-shadow: 0 4px 0px #B71C1C; font-size:16px; padding:10px 20px;">けす</button>
+        <button onclick="applyDrawing()" style="background-color: #43A047; box-shadow: 0 4px 0px #1B5E20; font-size:16px; padding:10px 20px;">これで決まり！</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // --- モード切替タブ ---
+    function switchMode(mode) {
+      document.getElementById('tabCube').classList.toggle('active', mode === 'cube');
+      document.getElementById('tabSymmetry').classList.toggle('active', mode === 'symmetry');
+      document.getElementById('modeCube').classList.toggle('active', mode === 'cube');
+      document.getElementById('modeSymmetry').classList.toggle('active', mode === 'symmetry');
+      if (mode === 'symmetry') initSymmetry();
+    }
+
+    // --- 共通の図形データ（非対称な図形たち） ---
+    const shapeData = {
+      bear: `<svg width="120" height="120" viewBox="0 0 100 100"><circle cx="25" cy="25" r="15" fill="#8D6E63"/><circle cx="75" cy="25" r="15" fill="#8D6E63"/><circle cx="50" cy="55" r="40" fill="#A1887F"/><circle cx="35" cy="45" r="5" fill="#3E2723"/><circle cx="65" cy="45" r="5" fill="#3E2723"/><ellipse cx="50" cy="65" rx="18" ry="14" fill="#D7CCC8"/><circle cx="50" cy="60" r="5" fill="#3E2723"/><path d="M 50 65 Q 50 75 42 72 M 50 65 Q 50 75 58 72" fill="none" stroke="#3E2723" stroke-width="2"/></svg>`,
+      triangle: `<svg width="120" height="120" viewBox="0 0 100 100"><polygon points="50,15 15,85 85,85" fill="#FF7043" stroke="#D84315" stroke-width="4" stroke-linejoin="round"/></svg>`,
+      arrow: `<svg width="120" height="120" viewBox="0 0 100 100"><polygon points="50,15 85,50 65,50 65,85 35,85 35,50 15,50" fill="#42A5F5" stroke="#1E88E5" stroke-width="4" stroke-linejoin="round"/></svg>`,
+      f: `<svg width="120" height="120" viewBox="0 0 100 100"><rect x="25" y="15" width="20" height="70" fill="#9C27B0" rx="2"/><rect x="45" y="15" width="35" height="20" fill="#9C27B0" rx="2"/><rect x="45" y="45" width="25" height="20" fill="#9C27B0" rx="2"/></svg>`,
+      // 線対称用の追加図形（ライオン、ラッパ）
+      lion: `<svg width="140" height="140" viewBox="0 0 100 100">
+               <!-- たてがみ（非対称にアレンジ） -->
+               <circle cx="50" cy="50" r="42" fill="#FFB300"/>
+               <circle cx="20" cy="30" r="15" fill="#FFA000"/>
+               <circle cx="80" cy="30" r="15" fill="#FFA000"/>
+               <circle cx="20" cy="70" r="15" fill="#FFA000"/>
+               <circle cx="80" cy="70" r="15" fill="#FFA000"/>
+               <!-- 顔 -->
+               <circle cx="50" cy="52" r="32" fill="#FFE082"/>
+               <!-- 目 -->
+               <circle cx="38" cy="44" r="4" fill="#3E2723"/>
+               <circle cx="62" cy="44" r="4" fill="#3E2723"/>
+               <!-- 鼻・口 -->
+               <polygon points="50,52 44,48 56,48" fill="#3E2723"/>
+               <path d="M 50 52 Q 50 64 42 62 M 50 52 Q 50 64 58 62" fill="none" stroke="#3E2723" stroke-width="2"/>
+               <!-- ヒゲのような非対称のワンポイント -->
+               <circle cx="30" cy="58" r="3" fill="#D7CCC8"/>
+             </svg>`,
+      trumpet: `<svg width="140" height="140" viewBox="0 0 100 100">
+                <!-- ラッパ（左右非対称） -->
+                <path d="M 20 60 Q 40 60 70 30 L 85 20 Q 90 15 95 25 L 85 45 Q 80 50 70 50 L 30 75 Z" fill="#FFD54F" stroke="#F57C00" stroke-width="3" stroke-linejoin="round"/>
+                <path d="M 35 62 L 25 78 L 45 70 Z" fill="#FFA000"/>
+                <ellipse cx="88" cy="22" rx="6" ry="10" fill="#FFE082" stroke="#F57C00" stroke-width="2" transform="rotate(45 88 22)"/>
+              </svg>`
+    };
+
+    // --- お絵描き機能用の変数と処理 ---
+    let targetMode = 'cube'; // 'cube' または 'symmetry'
+    const drawModal = document.getElementById('drawModal');
+    const canvas = document.getElementById('drawCanvas');
+    const ctx = canvas.getContext('2d');
+    let isDrawing = false;
+    ctx.lineWidth = 10;
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = '#333';
+
+    function getMousePos(e) {
+      const rect = canvas.getBoundingClientRect();
+      return {
+        x: (e.clientX - rect.left) * (canvas.width / rect.width),
+        y: (e.clientY - rect.top) * (canvas.height / rect.height)
+      };
+    }
+    canvas.addEventListener('mousedown', (e) => { isDrawing = true; const pos = getMousePos(e); ctx.beginPath(); ctx.moveTo(pos.x, pos.y); });
+    canvas.addEventListener('mousemove', (e) => { if (!isDrawing) return; const pos = getMousePos(e); ctx.lineTo(pos.x, pos.y); ctx.stroke(); });
+    canvas.addEventListener('mouseup', () => isDrawing = false);
+    canvas.addEventListener('mouseleave', () => isDrawing = false);
+
+    function clearCanvas() { ctx.clearRect(0, 0, canvas.width, canvas.height); }
+
+    function openDrawModal(mode) {
+      targetMode = mode;
+      clearCanvas();
+      drawModal.style.display = 'flex';
+    }
+
+    function applyDrawing() {
+      const dataURL = canvas.toDataURL();
+      drawModal.style.display = 'none';
+      if (targetMode === 'cube') {
+        const frontFace = document.getElementById('frontFace');
+        frontFace.innerHTML = '';
+        frontFace.style.backgroundImage = `url(${dataURL})`;
+        frontFace.style.backgroundSize = 'cover';
+      } else {
+        symCustomImage = dataURL;
+        updateSymShape();
+      }
+    }
+
+
+    // ==========================================
+    // 📦 立方体回転モードのスクリプト
+    // ==========================================
+    let currentAngle = 0;
+    let currentX = 0; 
+    const cubeSize = 160; 
+    const maxLimit = 400; 
+
+    const cube = document.getElementById('cube');
+    const tilt = document.getElementById('tilt');
+    const frontFace = document.getElementById('frontFace');
+    const shapeSelect = document.getElementById('shapeSelect');
+    const btnFront = document.getElementById('btnFront');
+    const btnDiagonal = document.getElementById('btnDiagonal');
+
+    function updateCubeShape() {
+      const val = shapeSelect.value;
+      if (val === 'draw') {
+        openDrawModal('cube');
+      } else {
+        frontFace.style.backgroundImage = 'none';
+        frontFace.innerHTML = shapeData[val];
+      }
+    }
+
+    function applyTransform() {
+      cube.style.transform = `translateX(${currentX}px) rotateZ(${currentAngle}deg)`;
+    }
+
+    function rollRight() {
+      currentAngle += 90;
+      currentX += cubeSize;
+      if (currentX > maxLimit) {
+        setTimeout(() => {
+          cube.style.transition = 'none';
+          currentX = 0;
+          applyTransform();
+          setTimeout(() => { cube.style.transition = 'transform 1.2s cubic-bezier(0.4, 0, 0.2, 1);'; }, 50);
+        }, 1200);
+      }
+      applyTransform();
+    }
+
+    function rollLeft() {
+      currentAngle -= 90;
+      currentX -= cubeSize;
+      if (currentX < -maxLimit) {
+        setTimeout(() => {
+          cube.style.transition = 'none';
+          currentX = 0;
+          applyTransform();
+          setTimeout(() => { cube.style.transition = 'transform 1.2s cubic-bezier(0.4, 0, 0.2, 1);'; }, 50);
+        }, 1200);
+      }
+      applyTransform();
+    }
+
+    function setView(viewType) {
+      if (viewType === 'front') {
+        tilt.style.transform = 'rotateX(0deg) rotateY(0deg)';
+        btnFront.style.backgroundColor = '#FF9800';
+        btnDiagonal.style.backgroundColor = '#90A4AE';
+      } else {
+        tilt.style.transform = 'rotateX(-15deg) rotateY(-25deg)';
+        btnDiagonal.style.backgroundColor = '#FF9800';
+        btnFront.style.backgroundColor = '#90A4AE';
+      }
+    }
+
+
+    // ==========================================
+    // 🦋 線対称トレーニングモードのスクリプト
+    // ==========================================
+    let symCustomImage = null;
+
+    function initSymmetry() {
+      updateSymShape();
+      resetSymmetry();
+    }
+
+    function updateSymShape() {
+      const val = document.getElementById('symShapeSelect').value;
+      const leftBox = document.getElementById('symLeftBox');
+      if (val === 'draw') {
+        if (!symCustomImage) {
+          openDrawModal('symmetry');
+          return;
+        }
+        leftBox.innerHTML = `<img src="${symCustomImage}" style="width:140px; height:140px; object-fit:contain;">`;
+      } else {
+        symCustomImage = null;
+        leftBox.innerHTML = shapeData[val];
+      }
+      document.getElementById('symRightBox').innerHTML = '';
+    }
+
+    // セレクトボックス変更時のハンドラ拡張
+    document.getElementById('symShapeSelect').addEventListener('change', function(e) {
+      if (e.target.value === 'draw') {
+        openDrawModal('symmetry');
+      }
+    });
+
+    function resetSymmetry() {
+      document.getElementById('symRightBox').innerHTML = '';
+      document.getElementById('flyingContainer').innerHTML = '';
+    }
+
+    function foldSymmetry() {
+      const rightBox = document.getElementById('symRightBox');
+      // すでに右側に表示されている場合は何もしない
+      if (rightBox.innerHTML !== '') return;
+
+      const leftBox = document.getElementById('symLeftBox');
+      const flyingContainer = document.getElementById('flyingContainer');
+
+      // 左側のコンテンツをコピーして、中央の軸（workspaceの中央）からパタンと右側に回転させるアニメーション
+      const workspaceRect = document.querySelector('.symmetry-workspace').getBoundingClientRect();
+      const leftRect = leftBox.getBoundingClientRect();
+      
+      // 飛行要素を作成
+      const flyer = document.createElement('div');
+      flyer.innerHTML = leftBox.innerHTML;
+      flyer.style.position = 'absolute';
+      flyer.style.left = (leftRect.left - workspaceRect.left) + 'px';
+      flyer.style.top = (leftRect.top - workspaceRect.top) + 'px';
+      flyer.style.width = leftRect.width + 'px';
+      flyer.style.height = leftRect.height + 'px';
+      flyer.style.display = 'flex';
+      flyer.style.alignItems = 'center';
+      flyer.style.justifyContent = 'center';
+      flyer.style.transformOrigin = 'right center'; // 軸側（右端）を基点にして左側にめくれる or 軸を基点に右側へ
+      flyer.style.transition = 'transform 1.2s cubic-bezier(0.4, 0, 0.2, 1)';
+      flyer.style.transformStyle = 'preserve-3d';
+
+      // 左右反転した見た目を作るために、内部を包む
+      flyer.innerHTML = `<div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; transform: scaleX(-1);">${leftBox.innerHTML}</div>`;
+
+      flyingContainer.appendChild(flyer);
+
+      // アニメーション発動
+      setTimeout(() => {
+        // 左側の位置から右側の位置へ移動しつつ、scaleX(-1)の反転を完了させる
+        const rightRect = rightBox.getBoundingClientRect();
+        const deltaX = rightRect.left - leftRect.left;
+        
+        flyer.style.transform = `translateX(${deltaX}px) rotateY(180deg)`;
+      }, 50);
+
+      // アニメーション終了後に実体を右側ボックスに入れ、飛行要素を消す
+      setTimeout(() => {
+        rightBox.innerHTML = leftBox.innerHTML;
+        // 右側は線対称（左右反転）状態で表示
+        rightBox.firstElementChild.style.transform = 'scaleX(-1)';
+        flyingContainer.innerHTML = '';
+      }, 1250);
+    }
+
+    // 初期化実行
+    updateCubeShape();
+  </script>
+</body>
+</html>
