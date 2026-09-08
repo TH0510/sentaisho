@@ -110,18 +110,18 @@
   .top { transform: rotateX(90deg) translateZ(80px); background: #f0f0f0; }
   .bottom { transform: rotateX(-90deg) translateZ(80px); background: #e0e0e0; }
 
-  /* --- 線対称モードのスタイル --- */
+  /* --- 線対称モードのスタイル（くっついた白紙スペース） --- */
   .symmetry-workspace {
     display: flex;
-    width: 900px;
-    height: 380px;
-    background: #fafbfc;
-    border: 3px solid #e0e0e0;
-    border-radius: 16px;
+    width: 620px;
+    height: 320px;
+    background: #fff;
+    border: 3px solid #ccc;
+    border-radius: 12px;
     position: relative;
     overflow: hidden;
     margin-bottom: 20px;
-    perspective: 1200px; /* 3Dアニメーション用 */
+    perspective: 1400px; /* 3Dアニメーション用 */
   }
   .sym-half {
     width: 50%;
@@ -146,7 +146,7 @@
     box-shadow: 0 0 10px rgba(255, 87, 34, 0.5);
   }
 
-  /* 中央線上に配置する「おる/もどす」ボタン */
+  /* 中央線上のボタン：「おる」⇔「もどす」 */
   .fold-btn-container {
     position: absolute;
     left: 50%;
@@ -157,17 +157,14 @@
 
   .sym-label {
     position: absolute;
-    top: 15px;
+    top: 10px;
     font-weight: bold;
-    font-size: 16px;
+    font-size: 14px;
     color: #78909c;
   }
-  .canvas-box {
-    width: 260px;
-    height: 260px;
-    background: #fff;
-    border: 2px dashed #ccc;
-    border-radius: 12px;
+  .content-box {
+    width: 240px;
+    height: 240px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -276,13 +273,13 @@
       <!-- 左側（元図形） -->
       <div class="sym-half">
         <div class="sym-label">ひだり（もと）</div>
-        <div class="canvas-box" id="symLeftBox"></div>
+        <div class="content-box" id="symLeftBox"></div>
       </div>
 
       <!-- 右側（対称図形） -->
       <div class="sym-half">
         <div class="sym-label">みぎ（線対称）</div>
-        <div class="canvas-box" id="symRightBox"></div>
+        <div class="content-box" id="symRightBox"></div>
       </div>
 
       <!-- アニメーション用フリップレイヤー -->
@@ -456,7 +453,7 @@
           openDrawModal('symmetry');
           return;
         }
-        leftBox.innerHTML = `<img src="${symCustomImage}" style="width:140px; height:140px; object-fit:contain;">`;
+        leftBox.innerHTML = `<img src="${symCustomImage}" style="width:120px; height:120px; object-fit:contain;">`;
       } else {
         symCustomImage = null;
         leftBox.innerHTML = shapeData[val];
@@ -482,7 +479,7 @@
 
     function toggleFold() {
       if (!isFolded) {
-        // ---「おる」動作（アニメーション開始）---
+        // ---「おる」動作（約2秒かけてゆっくりアニメーション）---
         isFolded = true;
         const actionBtn = document.getElementById('actionBtn');
         actionBtn.innerText = 'もどす';
@@ -494,55 +491,50 @@
         const workspaceRect = workspace.getBoundingClientRect();
         const leftRect = leftBox.getBoundingClientRect();
 
-        // 中央線（軸）のワークスペース内でのX座標を計算
-        const axisX = workspaceRect.width / 2;
         const boxWidth = leftRect.width;
         const boxHeight = leftRect.height;
         const boxTop = leftRect.top - workspaceRect.top;
+        const startLeft = leftRect.left - workspaceRect.left;
 
-        // 軸を右端とするフリップ用要素を作成
         const layer = document.getElementById('flippingLayer');
         const card = document.createElement('div');
-        
-        // 初期位置：左側のボックスの位置に合わせるが、回転軸を右端（軸の位置）にするため配置を調整
-        const startLeft = (leftRect.left - workspaceRect.left);
         
         card.style.position = 'absolute';
         card.style.left = startLeft + 'px';
         card.style.top = boxTop + 'px';
         card.style.width = boxWidth + 'px';
         card.style.height = boxHeight + 'px';
-        card.style.transformOrigin = 'right center'; // 右端（真ん中の線）を軸にする
+        card.style.transformOrigin = 'right center'; // 中央の線を軸にする
         card.style.transformStyle = 'preserve-3d';
-        card.style.transition = 'transform 1.2s cubic-bezier(0.25, 1, 0.5, 1)'; // 滑らかなアニメーション
+        // アニメーション時間を 2.0s に変更してじっくりと動かす
+        card.style.transition = 'transform 2.0s cubic-bezier(0.25, 1, 0.5, 1)';
 
-        // 表面（もとの絵）と裏面（反転した絵）を持つ立体カード構造
         card.innerHTML = `
-          <div style="position:absolute; width:100%; height:100%; backface-visibility:hidden; display:flex; align-items:center; justify-content:center; background:#fff; border-radius:12px; border:2px dashed #ccc;">
+          <div style="position:absolute; width:100%; height:100%; backface-visibility:hidden; display:flex; align-items:center; justify-content:center;">
             ${leftBox.innerHTML}
           </div>
-          <div style="position:absolute; width:100%; height:100%; backface-visibility:hidden; display:flex; align-items:center; justify-content:center; background:#fff; border-radius:12px; border:2px dashed #ccc; transform: rotateY(180deg) scaleX(-1);">
+          <div style="position:absolute; width:100%; height:100%; backface-visibility:hidden; display:flex; align-items:center; justify-content:center; transform: rotateY(180deg) scaleX(-1);">
             ${leftBox.innerHTML}
           </div>
         `;
 
         layer.appendChild(card);
 
-        // わずかに遅れて180度回転（パタンと右側に倒れる）
+        // わずかに遅れて180度回転開始
         setTimeout(() => {
           card.style.transform = 'rotateY(180deg)';
         }, 50);
 
-        // アニメーション完了後にフリップ要素を消し、右側のボックスに正解を表示
+        // 2秒のアニメーション終了後に右側へ結果を表示
         setTimeout(() => {
           layer.innerHTML = '';
           const rightBox = document.getElementById('symRightBox');
           rightBox.innerHTML = leftBox.innerHTML;
-          rightBox.firstElementChild.style.transform = 'scaleX(-1)'; // 完全に左右反転させる
-        }, 1250);
+          rightBox.firstElementChild.style.transform = 'scaleX(-1)'; // 左右反転
+        }, 2050);
 
       } else {
-        // ---「もどす」動作（リセット）---
+        // ---「もどす」動作---
         resetSymmetry();
       }
     }
